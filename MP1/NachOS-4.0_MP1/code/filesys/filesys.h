@@ -65,7 +65,7 @@ class FileSystem {
   
 //  The OpenAFile function is used for kernel open system call
 
-    // ******************** MP1 ******************** //
+// *************** MP1 *************** //
     OpenFileId OpenAFile(char *name) {
         OpenFile *file = Open(name);
         if(file == NULL) return -1;
@@ -92,7 +92,7 @@ class FileSystem {
         OpenFileTable[id-1] = NULL;
         return 1;
     }
-    // ******************** MP1 ******************** //
+// *************** MP1 *************** //
 
 
     bool Remove(char *name) { return Unlink(name) == 0; }
