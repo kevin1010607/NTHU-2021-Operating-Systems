@@ -24,13 +24,13 @@
 #define SC_Join		3
 #define SC_Create	4
 #define SC_Remove       5
-// ********** MP1 ********** //
+// *************** MP1 *************** //
 #define SC_Open	6
 #define SC_Read	7
 #define SC_Write	8
 #define SC_Seek         9
 #define SC_Close	10
-// ********** MP1 ********** //
+// *************** MP1 *************** //
 #define SC_ThreadFork	11
 #define SC_ThreadYield	12
 #define SC_ExecV	13

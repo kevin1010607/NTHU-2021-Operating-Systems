@@ -26,6 +26,11 @@
 
 Kernel::Kernel(int argc, char **argv)
 {
+// *************** MP2 *************** //
+    numAvailPhysPage = NumPhysPages;
+    for(int i = 0; i < NumPhysPages; i++)
+        usedPhysPage[i] = FALSE;
+// *************** MP2 *************** //
     randomSlice = FALSE; 
     debugUserProg = FALSE;
     consoleIn = NULL;          // default is stdin
@@ -35,14 +40,7 @@ Kernel::Kernel(int argc, char **argv)
 #endif
     reliability = 1;            // network reliability, default is 1.0
     hostName = 0;               // machine id, also UNIX socket name
-                                // 0 is the default machine id   
-    // ********** MP2 ********** //                            
-    numAvailablePhysPages = NumPhysPages;
-    for(int i = 0; i < NumPhysPages; i++){
-        usedPhysPages[i] = 0;
-    }
-    // ********** MP2 ********** //
-    
+                                // 0 is the default machine id
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-rs") == 0) {
  	    	ASSERT(i + 1 < argc);

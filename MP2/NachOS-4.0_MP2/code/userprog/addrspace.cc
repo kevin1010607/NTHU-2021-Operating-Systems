@@ -70,17 +70,16 @@ AddrSpace::AddrSpace()
     pageTable = new TranslationEntry[NumPhysPages];
     for (int i = 0; i < NumPhysPages; i++) {
         pageTable[i].virtualPage = i;	// for now, virt page # = phys page #
-        // ********** MP2 ********** //
+// *************** MP2 *************** //
         pageTable[i].physicalPage = -1;
-        // ********** MP2 ********** //
-        pageTable[i].valid = TRUE;
+        pageTable[i].valid = FALSE;
         pageTable[i].use = FALSE;
         pageTable[i].dirty = FALSE;
         pageTable[i].readOnly = FALSE;  
     }
-    
     // zero out the entire address space
-    bzero(kernel->machine->mainMemory, MemorySize);
+    // bzero(kernel->machine->mainMemory, MemorySize);
+// *************** MP2 *************** //
 }
 
 //----------------------------------------------------------------------
@@ -90,15 +89,14 @@ AddrSpace::AddrSpace()
 
 AddrSpace::~AddrSpace()
 {
-   // ********** MP2 ********** //
-   for(int i = 0; i < NumPhysPages; i++){
-       if(pageTable[i].physicalPage != -1){
-           kernel->usedPhysPages[pageTable[i].physicalPage] = 0;
-           kernel->numAvailablePhysPages++;
-       }
-   }
-   // ********** MP2 ********** //
-   delete pageTable;
+// *************** MP2 *************** //
+    for(int i = 0; i < NumPhysPages; i++){
+        if(pageTable[i].physicalPage == -1) continue;
+        kernel->usedPhysPage[pageTable[i].physicalPage] = FALSE;
+        kernel->numAvailPhysPage++;
+    }
+// *************** MP2 *************** //
+    delete pageTable;
 }
 
 
@@ -120,8 +118,8 @@ AddrSpace::Load(char *fileName)
     unsigned int size;
 
     if (executable == NULL) {
-	cerr << "Unable to open file " << fileName << "\n";
-	return FALSE;
+        cerr << "Unable to open file " << fileName << "\n";
+        return FALSE;
     }
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
@@ -144,26 +142,30 @@ AddrSpace::Load(char *fileName)
 #endif
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
-    
-    // ********** MP2 ********** //
-    if(numPages > kernel->numAvailablePhysPages){
+
+// *************** MP2 *************** //
+    // ASSERT(numPages <= NumPhysPages);		// check we're not trying
+						// to run anything too big --
+						// at least until we have
+						// virtual memory
+    if(numPages > kernel->numAvailPhysPage){
         kernel->machine->RaiseException(MemoryLimitException, 0);
         return FALSE;
     }
     int idx = 0;
     for(int i = 0; i < numPages; i++){
-        while(idx < NumPhysPages && kernel->usedPhysPages[idx] == 1) idx++;
-        ASSERT(kernel->usedPhysPages[idx] == 0)
+        while(idx<NumPhysPages && kernel->usedPhysPage[idx]) idx++;
+        ASSERT(kernel->usedPhysPage[idx] == FALSE);
         pageTable[i].physicalPage = idx;
-        kernel->usedPhysPages[idx] = 1;
-        kernel->numAvailablePhysPages--;
+        pageTable[i].valid = TRUE;
+        pageTable[i].use = FALSE;
+        pageTable[i].dirty = FALSE;
+        pageTable[i].readOnly = FALSE;
+        kernel->usedPhysPage[idx] = TRUE;
+        kernel->numAvailPhysPage--;
+        bzero(&kernel->machine->mainMemory[idx*PageSize], PageSize);
     }
-    // ********** MP2 ********** //
-
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
-						// to run anything too big --
-						// at least until we have
-						// virtual memory
+// *************** MP2 *************** //
 
     DEBUG(dbgAddr, "Initializing address space: " << numPages << ", " << size);
 
@@ -171,55 +173,124 @@ AddrSpace::Load(char *fileName)
 // Note: this code assumes that virtual address = physical address
     if (noffH.code.size > 0) {
         DEBUG(dbgAddr, "Initializing code segment.");
-	DEBUG(dbgAddr, noffH.code.virtualAddr << ", " << noffH.code.size);
-        // ********** MP2 ********** //
-        unsigned int physicalAddr;
-        ExceptionType exception = Translate(noffH.code.virtualAddr, &physicalAddr, 1);
-        if(exception != NoException){
-            kernel->machine->RaiseException(exception, 0);
+	    DEBUG(dbgAddr, noffH.code.virtualAddr << ", " << noffH.code.size);
+// *************** MP2 *************** //
+        // For multiple pages
+        if(!LoadData(noffH.code.virtualAddr, noffH.code.inFileAddr, noffH.code.size, 
+            executable, 1)) 
             return FALSE;
-        }
-        // ********** MP2 ********** //
-        executable->ReadAt(
-		&(kernel->machine->mainMemory[physicalAddr]), 
-			noffH.code.size, noffH.code.inFileAddr);
+        // For only one page
+        // unsigned int physicalAddr;
+        // ExceptionType exception = Translate(noffH.code.virtualAddr, &physicalAddr, 1);
+        // if(exception != NoException){
+        //     kernel->machine->RaiseException(exception, 0);
+        //     return FALSE;
+        // }
+        // executable->ReadAt(
+		// &(kernel->machine->mainMemory[physicalAddr]), 
+		// 	noffH.code.size, noffH.code.inFileAddr);
+// *************** MP2 *************** //
     }
     if (noffH.initData.size > 0) {
         DEBUG(dbgAddr, "Initializing data segment.");
-	DEBUG(dbgAddr, noffH.initData.virtualAddr << ", " << noffH.initData.size);
-        // ********** MP2 ********** //
-        unsigned int physicalAddr;
-        ExceptionType exception = Translate(noffH.initData.virtualAddr, &physicalAddr, 1);
-        if(exception != NoException){
-            kernel->machine->RaiseException(exception, 0);
+	    DEBUG(dbgAddr, noffH.initData.virtualAddr << ", " << noffH.initData.size);
+// *************** MP2 *************** //
+        // For multiple pages
+        if(!LoadData(noffH.initData.virtualAddr, noffH.initData.inFileAddr, noffH.initData.size, 
+            executable, 1)) 
             return FALSE;
-        }
-        // ********** MP2 ********** //
-        executable->ReadAt(
-		&(kernel->machine->mainMemory[physicalAddr]),
-			noffH.initData.size, noffH.initData.inFileAddr);
+        // For only one page
+        // unsigned int physicalAddr;
+        // ExceptionType exception = Translate(noffH.initData.virtualAddr, &physicalAddr, 1);
+        // if(exception != NoException){
+        //     kernel->machine->RaiseException(exception, 0);
+        //     return FALSE;
+        // }
+        // executable->ReadAt(
+		// &(kernel->machine->mainMemory[physicalAddr]),
+		// 	noffH.initData.size, noffH.initData.inFileAddr);
+// *************** MP2 *************** //
     }
 
 #ifdef RDATA
     if (noffH.readonlyData.size > 0) {
         DEBUG(dbgAddr, "Initializing read only data segment.");
-	DEBUG(dbgAddr, noffH.readonlyData.virtualAddr << ", " << noffH.readonlyData.size);
-        // ********** MP2 ********** //
-        unsigned int physicalAddr;
-        ExceptionType exception = Translate(noffH.readonlyData.virtualAddr, &physicalAddr, 0);
-        if(exception != NoException){
-            kernel->machine->RaiseException(exception, 0);
+	    DEBUG(dbgAddr, noffH.readonlyData.virtualAddr << ", " << noffH.readonlyData.size);
+// *************** MP2 *************** //
+        // For multiple pages
+        if(!LoadData(noffH.readonlyData.virtualAddr, noffH.readonlyData.inFileAddr, noffH.readonlyData.size, 
+            executable, 0)) 
             return FALSE;
-        }
-        // ********** MP2 ********** //
-        executable->ReadAt(
-		&(kernel->machine->mainMemory[physicalAddr]),
-			noffH.readonlyData.size, noffH.readonlyData.inFileAddr);
+        // For only one page
+        // unsigned int physicalAddr;
+        // ExceptionType exception = Translate(noffH.readonlyData.virtualAddr, &physicalAddr, 0);
+        // if(exception != NoException){
+        //     kernel->machine->RaiseException(exception, 0);
+        //     return FALSE;
+        // }
+        // executable->ReadAt(
+		// &(kernel->machine->mainMemory[physicalAddr]),
+		// 	noffH.readonlyData.size, noffH.readonlyData.inFileAddr);
+// *************** MP2 *************** //
     }
 #endif
 
     delete executable;			// close file
     return TRUE;			// success
+}
+
+//----------------------------------------------------------------------
+// AddrSpace::LoadData
+// 	Load a segment with multiple pages to memory.
+//  return true if no exception happen, else raise exception and return false
+//----------------------------------------------------------------------
+
+bool 
+AddrSpace::LoadData(int segVirtualAddr, int segInFileAddr, int segSize, OpenFile *executable, int isReadWrite)
+{
+    // First Page, the size is 0 ~ PageSize-1
+    int remainSize = segSize;
+    int blockSize = PageSize - ((segVirtualAddr + PageSize - 1) % PageSize + 1);
+    int inFileAddr = segInFileAddr;
+    unsigned int virtualAddr = segVirtualAddr;
+    unsigned int physicalAddr;
+    ExceptionType exception = Translate(virtualAddr, &physicalAddr, 1);
+    if(exception != NoException) {
+        kernel->machine->RaiseException(exception, 0);
+        return FALSE;
+    }
+    executable->ReadAt(&(kernel->machine->mainMemory[physicalAddr]), blockSize, inFileAddr);
+    virtualAddr += blockSize;
+    inFileAddr += blockSize;
+    remainSize -= blockSize;
+
+    // Second to second last page, the size is PageSize
+    while(remainSize >= PageSize) {
+        if(!isReadWrite) pageTable[virtualAddr / PageSize].readOnly = TRUE;
+        exception = Translate(virtualAddr, &physicalAddr, isReadWrite);
+        if(exception != NoException) {
+            kernel->machine->RaiseException(exception, 0);
+            return FALSE;
+        }
+        executable->ReadAt(&(kernel->machine->mainMemory[physicalAddr]), PageSize, inFileAddr);
+        virtualAddr += PageSize;
+        inFileAddr += PageSize;
+        remainSize -= PageSize;
+    }
+    
+    // Last Page, the size is 0 ~ PageSize-1
+    exception = Translate(virtualAddr, &physicalAddr, 1);
+    if(exception != NoException) {
+        kernel->machine->RaiseException(exception, 0);
+        return FALSE;
+    }
+    executable->ReadAt(&(kernel->machine->mainMemory[physicalAddr]), PageSize, inFileAddr);
+    virtualAddr += remainSize;
+    inFileAddr += remainSize;
+
+    ASSERT(virtualAddr == segVirtualAddr + segSize);
+    ASSERT(inFileAddr == segInFileAddr + segSize);
+    return TRUE;
 }
 
 //----------------------------------------------------------------------

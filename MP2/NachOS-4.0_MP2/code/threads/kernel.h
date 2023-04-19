@@ -70,18 +70,15 @@ class Kernel {
     PostOfficeOutput *postOfficeOut;
 
     int hostName;               // machine identifier
-    
-    // ********** MP2 ********** //
-    int numAvailablePhysPages;
-    int usedPhysPages[NumPhysPages];
-    // ********** MP2 ********** //
-    
+// *************** MP2 *************** //
+    int numAvailPhysPage;
+    bool usedPhysPage[NumPhysPages];
+// *************** MP2 *************** //
   private:
-
-	Thread* t[10];
-	char*   execfile[10];
-	int execfileNum;
-	int threadNum;
+    Thread* t[10];
+    char*   execfile[10];
+    int execfileNum;
+    int threadNum;
     bool randomSlice;		// enable pseudo-random time slicing
     bool debugUserProg;         // single step user program
     double reliability;         // likelihood messages are dropped

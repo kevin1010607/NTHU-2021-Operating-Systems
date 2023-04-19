@@ -47,6 +47,9 @@ class AddrSpace {
 
     void InitRegisters();		// Initialize user-level CPU registers,
 					// before jumping to user code
+// *************** MP2 *************** //
+    bool LoadData(int segVirtualAddr, int segInFileAddr, int segSize, OpenFile *executable, int isReadWrite);
+// *************** MP2 *************** //
 
 };
 

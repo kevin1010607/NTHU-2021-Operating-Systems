@@ -52,11 +52,9 @@ enum ExceptionType { NoException,           // Everything ok!
 					    // address space
 		     OverflowException,     // Integer overflow in add or sub.
 		     IllegalInstrException, // Unimplemented or reserved instr.
-              
-		     // ********** MP2 ********** //
-		     MemoryLimitException,
-		     // ********** MP2 ********** //
-              
+// *************** MP2 *************** //
+			 MemoryLimitException,
+// *************** MP2 *************** //
 		     NumExceptionTypes
 };
 
@@ -182,10 +180,10 @@ class Machine {
     int runUntilTime;		// drop back into the debugger when simulated
 				// time reaches this value
 
-    friend class Interrupt;		// calls DelayedLoad()   
-    // ********** MP2 ********** // 
-    friend class AddrSpace;   // calls RaiseException()
-    // ********** MP2 ********** //
+    friend class Interrupt;		// calls DelayedLoad()    
+// *************** MP2 *************** //
+	friend class AddrSpace;		// calls RaiseException()
+// *************** MP2 *************** //
 };
 
 extern void ExceptionHandler(ExceptionType which);

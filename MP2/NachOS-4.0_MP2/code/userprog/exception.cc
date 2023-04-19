@@ -102,7 +102,7 @@ ExceptionHandler(ExceptionType which)
 		return;
 		ASSERTNOTREACHED();
 	    break;
-      	    case SC_Add:
+      	case SC_Add:
 		DEBUG(dbgSys, "Add " << kernel->machine->ReadRegister(4) << " + " << kernel->machine->ReadRegister(5) << "\n");
 		/* Process SysAdd Systemcall*/
 		int result;
@@ -132,7 +132,7 @@ ExceptionHandler(ExceptionType which)
             		cout << "return value:" << val << endl;
 			kernel->currentThread->Finish();
             break;
-	// ******************** MP1 ******************** //
+// *************** MP1 *************** //
 	case SC_Open:
 		val = kernel->machine->ReadRegister(4);
 		{
@@ -188,7 +188,7 @@ ExceptionHandler(ExceptionType which)
 		return;
 		ASSERTNOTREACHED();
 		break;
-		// ******************** MP1 ******************** //
+// *************** MP1 *************** //
         default:
 		cerr << "Unexpected system call " << type << "\n";
 	    break;
